@@ -1,0 +1,1292 @@
+
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseMatrix AI - Healthcare Resource Demand & Optimization</title>
+
+  <!-- TailwindCSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              900: '#134e4a',
+              950: '#042f2e'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- html2pdf.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    @keyframes redGlowAnimation {
+      0%, 100% {
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.8), 0 0 24px rgba(239, 68, 68, 0.5);
+      }
+      50% {
+        box-shadow: 0 0 22px rgba(239, 68, 68, 1), 0 0 40px rgba(239, 68, 68, 0.8);
+      }
+    }
+    .glow-overcapacity {
+      animation: redGlowAnimation 1.6s infinite ease-in-out;
+    }
+
+    @media print {
+      .chart-card, canvas, table, tr {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #020617;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #334155;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased selection:bg-teal-500 selection:text-slate-950">
+
+  <!-- ================================================================= -->
+  <!-- 1. FULL-SCREEN LOGIN OVERLAY (EYE TOGGLE)                         -->
+  <!-- ================================================================= -->
+  <div id="loginOverlay" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-2xl transition-all duration-300">
+    <div class="w-full max-w-md p-8 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl relative mx-4">
+      
+      <div class="text-center mb-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-teal-500/10 border border-teal-500/30 text-teal-400 mb-4 shadow-xl shadow-teal-500/10">
+          <i class="fa-solid fa-hospital-user text-3xl"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-white">PulseMatrix AI</h1>
+        <p class="text-xs text-slate-400 mt-1">Information Science & Engineering Healthcare System</p>
+        <div class="mt-2 inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-[11px] text-slate-300">
+          <i class="fa-solid fa-shield-halved text-teal-400 mr-1"></i>
+          <span>Clinical Operations Security Gateway</span>
+        </div>
+      </div>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Access Role</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 text-sm">
+              <i class="fa-solid fa-id-badge"></i>
+            </span>
+            <select id="loginRole" onchange="onLoginRoleChange(this.value)" class="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-teal-500 text-slate-100 text-sm appearance-none cursor-pointer transition">
+              <option value="System Administrator">System Administrator</option>
+              <option value="Staff">Medical Staff</option>
+            </select>
+            <span class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-slate-500 text-xs">
+              <i class="fa-solid fa-chevron-down"></i>
+            </span>
+          </div>
+        </div>
+
+        <div>
+          <label id="usernameLabel" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Username</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 text-sm">
+              <i class="fa-solid fa-user" id="userInputIcon"></i>
+            </span>
+            <input type="text" id="loginUsername" placeholder="Enter username" required autocomplete="off"
+                   class="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-teal-500 text-slate-100 text-sm placeholder-slate-600 transition">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">Password</label>
+          <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-slate-500 text-sm">
+              <i class="fa-solid fa-lock"></i>
+            </span>
+            <input type="password" id="loginPassword" placeholder="Enter password" required autocomplete="off"
+                   class="w-full pl-10 pr-10 py-2.5 bg-slate-950 border border-slate-800 rounded-xl focus:outline-none focus:border-teal-500 text-slate-100 text-sm placeholder-slate-600 transition">
+            <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-500 hover:text-teal-400 cursor-pointer focus:outline-none">
+              <i class="fa-solid fa-eye" id="passwordEyeIcon"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="loginError" class="hidden text-xs text-rose-400 bg-rose-500/10 border border-rose-500/25 p-3 rounded-xl text-center font-medium"></div>
+
+        <button type="submit" id="loginBtn"
+                class="w-full py-3 px-4 mt-2 bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-slate-950 font-bold text-sm rounded-xl transition duration-150 flex items-center justify-center space-x-2 shadow-lg shadow-teal-500/25 cursor-pointer">
+          <i class="fa-solid fa-arrow-right-to-bracket"></i>
+          <span>Sign In to Console</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- 2. MAIN DASHBOARD SHELL                                           -->
+  <!-- ================================================================= -->
+  <div id="dashboardApp" class="hidden flex min-h-screen bg-slate-950">
+
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between shrink-0 select-none">
+      <div>
+        <div class="p-6 border-b border-slate-800 flex items-center space-x-3.5">
+          <div class="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400 shadow-md shadow-teal-500/10">
+            <i class="fa-solid fa-microchip text-lg"></i>
+          </div>
+          <div>
+            <span class="text-base font-bold text-white tracking-wide block leading-tight">PulseMatrix AI</span>
+            <span class="text-[10px] text-teal-400 font-mono tracking-wider font-semibold uppercase">Enterprise ISE</span>
+          </div>
+        </div>
+
+        <nav class="p-4 space-y-1.5">
+          <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition bg-teal-500/15 text-teal-400 border border-teal-500/20">
+            <i class="fa-solid fa-gauge-high w-5 text-center text-base"></i>
+            <span>Dashboard</span>
+          </button>
+
+          <button onclick="switchTab('horizons')" id="nav-horizons" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-100 hover:bg-slate-800/60">
+            <i class="fa-solid fa-clock w-5 text-center text-base"></i>
+            <span>Horizons (1H-30D)</span>
+          </button>
+
+          <button onclick="switchTab('optimization')" id="nav-optimization" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-100 hover:bg-slate-800/60">
+            <i class="fa-solid fa-sliders w-5 text-center text-base"></i>
+            <span>PuLP Optimization</span>
+          </button>
+
+          <button onclick="switchTab('analytics')" id="nav-analytics" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-100 hover:bg-slate-800/60">
+            <i class="fa-solid fa-chart-line w-5 text-center text-base"></i>
+            <span>Analytics & Charts</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-slate-800 space-y-2">
+        <button onclick="downloadPdfReport()" id="btnDownloadPdf" class="w-full flex items-center justify-center space-x-2 px-3 py-2.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-200 rounded-xl text-xs font-semibold border border-slate-700 transition shadow-sm cursor-pointer">
+          <i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i>
+          <span>Download PDF Report</span>
+        </button>
+
+        <!-- ADMIN ONLY CONTROLS (COMPLETELY HIDDEN FOR MEDICAL STAFF) -->
+        <div id="adminControlsContainer" class="space-y-2 hidden">
+          <!-- 1. Select CSV to Retrain -->
+          <label class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-teal-500/10 hover:bg-teal-500/20 text-teal-300 rounded-xl text-xs font-semibold border border-teal-500/30 cursor-pointer transition shadow-sm">
+            <i class="fa-solid fa-cloud-arrow-up text-teal-400 text-sm"></i>
+            <span id="uploadFileBtnText">Select CSV to Retrain</span>
+            <input type="file" id="retrainFileInput" accept=".csv" class="hidden" onchange="handleFileUpload(event)">
+          </label>
+
+          <!-- 2. Rollback Model Button -->
+          <button onclick="triggerRollback()" id="btnRollback" class="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 rounded-xl text-xs font-semibold border border-rose-500/30 cursor-pointer transition shadow-sm">
+            <i class="fa-solid fa-rotate-left text-rose-400 text-sm"></i>
+            <span id="rollbackBtnText">Rollback Model (Reset)</span>
+          </button>
+        </div>
+
+        <button onclick="logout()" class="w-full flex items-center justify-center space-x-2 px-3 py-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl text-xs font-semibold transition cursor-pointer">
+          <i class="fa-solid fa-power-off"></i>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- CONTENT WRAPPER -->
+    <div class="flex-1 flex flex-col min-w-0">
+
+      <!-- TOP STICKY HEADER (ALWAYS LIVE REAL-TIME DATE & CLOCK) -->
+      <header class="h-16 bg-slate-900/90 border-b border-slate-800 px-6 flex items-center justify-between backdrop-blur-md sticky top-0 z-30">
+        <div class="flex items-center space-x-5">
+          <span id="systemStatusBadge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 mr-2 animate-ping"></span>
+            Telemetry Stream Online
+          </span>
+
+          <div class="text-xs text-slate-400 font-mono flex items-center space-x-3">
+            <span id="currentDateText" class="flex items-center">
+              <i class="fa-regular fa-calendar mr-1.5 text-slate-500"></i>2026-09-14
+            </span>
+            <span class="text-slate-700">|</span>
+            <span id="clockText" class="text-teal-400 font-bold tracking-widest flex items-center">
+              <i class="fa-regular fa-clock mr-1.5 text-teal-500"></i>00:00:00
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3">
+          <div class="text-right hidden sm:block">
+            <span id="headerUserRoleText" class="text-xs font-semibold text-white block leading-tight">System Administrator</span>
+            <span class="text-[10px] text-teal-400 font-mono uppercase tracking-wider">Authenticated Identity</span>
+          </div>
+          <div class="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-500/40 text-teal-400 flex items-center justify-center text-xs font-bold font-mono shadow-sm" id="userInitialBadge">
+            SA
+          </div>
+        </div>
+      </header>
+
+      <!-- EXPORTABLE MAIN REPORT VIEW -->
+      <main id="exportableArea" class="flex-1 p-6 space-y-6 overflow-y-auto">
+
+        <!-- TAB 1: DASHBOARD OVERVIEW -->
+        <section id="tab-dashboard" class="space-y-6">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs uppercase font-semibold tracking-wider text-slate-400">Peak ICU Demand</p>
+                  <h3 id="kpiCurrentDemand" class="text-2xl font-bold text-white mt-1">--</h3>
+                </div>
+                <div class="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400">
+                  <i class="fa-solid fa-bed-pulse text-lg"></i>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2 flex items-center">
+                <span class="text-slate-500 mr-1.5">Capacity Limit:</span> 120 Beds
+              </p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs uppercase font-semibold tracking-wider text-slate-400">Flu Outbreak Risk</p>
+                  <h3 id="kpiFluRisk" class="text-2xl font-bold text-amber-400 mt-1">--%</h3>
+                </div>
+                <div class="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400">
+                  <i class="fa-solid fa-virus-covid text-lg"></i>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2 flex items-center">
+                <span class="text-slate-500 mr-1.5">Epidemic Threshold:</span> 100 Cases
+              </p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs uppercase font-semibold tracking-wider text-slate-400">Total Resource Deficit</p>
+                  <h3 id="kpiTotalShortage" class="text-2xl font-bold text-rose-400 mt-1">--</h3>
+                </div>
+                <div class="p-2.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400">
+                  <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2 flex items-center">
+                <span class="text-slate-500 mr-1.5">Net units short across facility</span>
+              </p>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <div class="flex justify-between items-start">
+                <div>
+                  <p class="text-xs uppercase font-semibold tracking-wider text-slate-400">Rejected Patients</p>
+                  <h3 id="kpiRejectedPatients" class="text-2xl font-bold text-rose-500 mt-1">--</h3>
+                </div>
+                <div class="p-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400">
+                  <i class="fa-solid fa-user-xmark text-lg"></i>
+                </div>
+              </div>
+              <p class="text-xs text-slate-400 mt-2 flex items-center">
+                <span class="text-slate-500 mr-1.5">PuLP Diverted / Transfer</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center">
+              <div>
+                <h2 class="text-base font-semibold text-white">Physical Capacity vs 24h Peak Forecast Matrix</h2>
+                <p class="text-xs text-slate-400">Calculates exact shortages and PuLP optimization bounds</p>
+              </div>
+              <button onclick="fetchOptimizeData()" class="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-teal-400 rounded-lg border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer">
+                <i class="fa-solid fa-rotate-right"></i>
+                <span>Refresh Matrix</span>
+              </button>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-sm text-slate-300">
+                <thead class="text-xs uppercase bg-slate-950/60 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th class="px-6 py-3.5">Healthcare Resource</th>
+                    <th class="px-6 py-3.5">Physical Limit</th>
+                    <th class="px-6 py-3.5">Predicted 24h Peak</th>
+                    <th class="px-6 py-3.5">Allocated (PuLP)</th>
+                    <th class="px-6 py-3.5">Projected Shortage</th>
+                    <th class="px-6 py-3.5">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="resourceTableBody" class="divide-y divide-slate-800/60">
+                  <tr>
+                    <td colspan="6" class="px-6 py-8 text-center text-slate-400">
+                      <i class="fa-solid fa-spinner fa-spin mr-2 text-teal-400"></i> Querying AI forecasting engine...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 2: HORIZONS (1H, 6H, 1D, 3D, 7D, 30D) -->
+        <section id="tab-horizons" class="hidden space-y-6">
+          <div class="flex justify-between items-center">
+            <div>
+              <h2 class="text-lg font-bold text-white">Point-In-Time Multi-Horizon Demand Projections</h2>
+              <p class="text-xs text-slate-400">Granular forecasts evaluated across discrete operational time intervals</p>
+            </div>
+            <button onclick="fetchHorizonsData()" class="text-xs px-3 py-1.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-teal-400 rounded-lg border border-slate-700 flex items-center space-x-1.5 transition cursor-pointer">
+              <i class="fa-solid fa-arrows-rotate"></i>
+              <span>Recompute Horizons</span>
+            </button>
+          </div>
+
+          <div id="horizonsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5"></div>
+        </section>
+
+        <!-- TAB 3: PuLP OPTIMIZATION & DYNAMIC AI RECOVERY MATRIX -->
+        <section id="tab-optimization" class="hidden space-y-6">
+          <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-sm">
+            <div class="flex justify-between items-center mb-6">
+              <div>
+                <h2 class="text-lg font-bold text-white">PuLP Mixed-Integer Linear Programming Allocation</h2>
+                <p class="text-xs text-slate-400">Strict physical resource utilization mapping (Glows red if utilization exceeds 100%)</p>
+              </div>
+              <span id="solverStatusTag" class="px-3 py-1 bg-teal-500/10 text-teal-400 border border-teal-500/30 rounded-lg text-xs font-mono font-semibold">
+                Solver: Optimal
+              </span>
+            </div>
+
+            <div id="progressBarsContainer" class="space-y-6"></div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <h3 class="text-sm font-semibold text-rose-400 mb-3 flex items-center">
+                <i class="fa-solid fa-circle-radiation mr-2"></i> Critical Care / Ventilated Cohort
+              </h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-300">
+                  <span>Admitted Patients:</span>
+                  <span id="optCritAlloc" class="font-bold text-white font-mono">--</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                  <span>Requested Demands:</span>
+                  <span id="optCritReq" class="font-mono">--</span>
+                </div>
+                <div class="text-[11px] text-slate-500 border-t border-slate-800 pt-2 mt-2">
+                  High triage weight. Bound by 12 mechanical ventilators & 6.0 O2 units/patient.
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <h3 class="text-sm font-semibold text-amber-400 mb-3 flex items-center">
+                <i class="fa-solid fa-mask-ventilator mr-2"></i> Severe High-Flow Oxygen Cohort
+              </h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-300">
+                  <span>Admitted Patients:</span>
+                  <span id="optSevAlloc" class="font-bold text-white font-mono">--</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                  <span>Requested Demands:</span>
+                  <span id="optSevReq" class="font-mono">--</span>
+                </div>
+                <div class="text-[11px] text-slate-500 border-t border-slate-800 pt-2 mt-2">
+                  Medium triage weight. Requires 1 bed, 2.5 O2 units, and 0.7 medical staff.
+                </div>
+              </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <h3 class="text-sm font-semibold text-teal-400 mb-3 flex items-center">
+                <i class="fa-solid fa-hospital-user mr-2"></i> Moderate / Acute Step-Down Cohort
+              </h3>
+              <div class="space-y-2 text-xs">
+                <div class="flex justify-between text-slate-300">
+                  <span>Admitted Patients:</span>
+                  <span id="optModAlloc" class="font-bold text-white font-mono">--</span>
+                </div>
+                <div class="flex justify-between text-slate-400">
+                  <span>Requested Demands:</span>
+                  <span id="optModReq" class="font-mono">--</span>
+                </div>
+                <div class="text-[11px] text-slate-500 border-t border-slate-800 pt-2 mt-2">
+                  Primary cohort scheduled for diversion/transfer when physical beds exhaust.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-slate-900 border border-teal-500/30 p-6 rounded-2xl shadow-xl shadow-teal-500/5 space-y-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-800">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/30 flex items-center justify-center text-teal-400">
+                  <i class="fa-solid fa-brain text-lg"></i>
+                </div>
+                <div>
+                  <h3 class="text-base font-bold text-white">Gemini AI Dynamic Clinical Optimization & Re-Allocation Protocol</h3>
+                  <p class="text-xs text-slate-400">Real-time mathematical mitigation plan calculated from live PuLP solver shortages</p>
+                </div>
+              </div>
+              <button onclick="fetchGeminiOptimizationStrategy()" id="btnGeminiStrategy"
+                      class="px-4 py-2.5 bg-teal-500 hover:bg-teal-600 active:bg-teal-700 text-slate-950 text-xs font-bold rounded-xl transition flex items-center space-x-2 shadow-md shadow-teal-500/20 cursor-pointer">
+                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                <span>Execute Dynamic Optimization</span>
+              </button>
+            </div>
+
+            <div id="dynamicRecoveryContainer" class="hidden space-y-4">
+              <h4 class="text-xs uppercase tracking-wider font-bold text-teal-400">Calculated Mathematical Resource Recovery Matrix:</h4>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border border-slate-800 rounded-xl overflow-hidden">
+                  <thead class="bg-slate-950 uppercase text-[10px] text-slate-400">
+                    <tr>
+                      <th class="p-2.5">Resource</th>
+                      <th class="p-2.5">Initial Deficit</th>
+                      <th class="p-2.5">AI Optimization Action</th>
+                      <th class="p-2.5">Recovered Units</th>
+                      <th class="p-2.5">Net Post-Opt Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody id="dynamicRecoveryBody" class="divide-y divide-slate-800 text-slate-300"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="geminiStrategyOutput" class="text-xs text-slate-300 leading-relaxed space-y-2 bg-slate-950/70 p-4 rounded-xl border border-slate-800/80">
+              <p class="text-slate-500 italic">Click "Execute Dynamic Optimization" to synthesize the real-time resource re-allocation matrix, calculate exact bed recoveries, and deploy the triage diversion protocol for the current shortage numbers.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 4: ANALYTICS & VISUAL DUAL CHARTS -->
+        <section id="tab-analytics" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-900 border border-slate-800 p-4 rounded-2xl">
+            <div>
+              <h2 class="text-base font-bold text-white">Time-Series Forecast & Capacity Visualizer</h2>
+              <p class="text-xs text-slate-400">Trailing 48h actuals seamlessly joined with future predictions (Synchronized with Dashboard Date)</p>
+            </div>
+            <div class="flex items-center space-x-3">
+              <label class="text-xs text-slate-300 font-semibold">Forecast Window:</label>
+              <select id="analyticsHorizonSelect" onchange="fetchAnalyticsData()"
+                      class="bg-slate-950 border border-slate-700 text-xs text-teal-400 rounded-xl px-3 py-2 focus:outline-none focus:border-teal-500 font-bold cursor-pointer">
+                <option value="24">24 Hours Ahead</option>
+                <option value="72">72 Hours (3 Days)</option>
+                <option value="168">168 Hours (7 Days)</option>
+                <option value="720">720 Hours (30 Days)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <h3 class="text-sm font-semibold text-white mb-1">ICU Patients & Flu Trajectory</h3>
+              <p class="text-[11px] text-slate-400 mb-4">Historical Actuals (Left) vs AI Projection (Right)</p>
+              <div class="h-72 w-full relative">
+                <canvas id="timeSeriesChart"></canvas>
+              </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm">
+              <h3 class="text-sm font-semibold text-white mb-1">Resource Inventory vs Peak Demand</h3>
+              <p class="text-[11px] text-slate-400 mb-4">Physical Limits vs Projected Peak Demand</p>
+              <div class="h-72 w-full relative">
+                <canvas id="inventoryChart"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- FLOATING GEMINI CLINICAL TRIAGE CHAT WIDGET -->
+  <div class="fixed bottom-6 right-6 z-40">
+    <button id="chatToggleBtn" onclick="toggleChatWidget()"
+            class="w-14 h-14 bg-teal-500 hover:bg-teal-600 text-slate-950 rounded-full shadow-2xl flex items-center justify-center text-xl transition-all duration-300 shadow-teal-500/30 hover:scale-105 cursor-pointer">
+      <i class="fa-solid fa-comment-medical"></i>
+    </button>
+
+    <div id="chatWidget" class="hidden absolute bottom-16 right-0 w-96 h-[520px] bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-2xl transition-all">
+      <div class="p-4 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center space-x-2.5">
+          <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 border border-teal-500/40 flex items-center justify-center text-sm">
+            <i class="fa-solid fa-stethoscope"></i>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold text-white leading-tight">Gemini Clinical Triage AI</h4>
+            <span class="text-[10px] text-emerald-400 flex items-center">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1 animate-pulse"></span> Medical Assistant Online
+            </span>
+          </div>
+        </div>
+        <button onclick="toggleChatWidget()" class="text-slate-400 hover:text-white text-sm p-1 transition cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3 text-xs">
+        <div class="p-3 bg-slate-800/80 border border-slate-700/60 rounded-2xl text-slate-200">
+          <p class="font-bold text-teal-400 text-[11px] mb-1">Clinical Triage Desk</p>
+          Welcome to the Emergency Triage Center. Please state patient symptoms, SpO2 levels, or request hospital resource status.
+        </div>
+      </div>
+
+      <div class="px-3 py-2 bg-slate-950/80 border-t border-slate-800/60 flex items-center space-x-1.5 overflow-x-auto whitespace-nowrap text-[10px]">
+        <button onclick="sendQuickMessage('Patient SpO2 dropped to 87% with acute dyspnea')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition">SpO2 87% Dyspnea</button>
+        <button onclick="sendQuickMessage('High fever 103F with persistent severe cough')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition">103°F Flu Fever</button>
+        <button onclick="sendQuickMessage('Check current ventilator and oxygen reserves')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition">Resource Availability</button>
+      </div>
+
+      <form id="chatForm" onsubmit="handleChatSubmit(event)" class="p-3 bg-slate-950 border-t border-slate-800 flex items-center space-x-2">
+        <input type="text" id="chatInput" placeholder="Describe patient symptoms or clinical inquiry..." required
+               class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-teal-500 placeholder-slate-500">
+        <button type="submit" id="chatSendBtn" class="p-2.5 bg-teal-500 hover:bg-teal-600 text-slate-950 rounded-xl transition text-xs font-bold cursor-pointer">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- 4. CLIENT LOGIC SCRIPT                                            -->
+  <!-- ================================================================= -->
+  <script>
+    const API_BASE = window.location.port === '3000' ? '' : 'http://localhost:3000';
+
+    let authToken = null;
+    let currentUser = JSON.parse(localStorage.getItem('aegis_user') || '{"username":"admin","role":"System Administrator"}');
+    let lineChartInstance = null;
+    let barChartInstance = null;
+    let chatConversationHistory = [];
+    let latestOptimizationData = null;
+
+    // Preserves active session across file uploads (never logs out on upload)
+    document.addEventListener('DOMContentLoaded', () => {
+      startClock();
+      const savedToken = sessionStorage.getItem('aegis_jwt_token');
+      const savedUser = sessionStorage.getItem('aegis_user');
+
+      if (savedToken && savedUser) {
+        authToken = savedToken;
+        currentUser = JSON.parse(savedUser);
+        unlockDashboard();
+      } else {
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('dashboardApp').classList.add('hidden');
+        document.getElementById('loginUsername').value = '';
+        document.getElementById('loginPassword').value = '';
+        onLoginRoleChange('System Administrator');
+      }
+    });
+
+    function togglePasswordVisibility() {
+      const passInput = document.getElementById('loginPassword');
+      const eyeIcon = document.getElementById('passwordEyeIcon');
+
+      if (passInput.type === 'password') {
+        passInput.type = 'text';
+        eyeIcon.className = 'fa-solid fa-eye-slash text-teal-400';
+      } else {
+        passInput.type = 'password';
+        eyeIcon.className = 'fa-solid fa-eye text-slate-500';
+      }
+    }
+
+    function onLoginRoleChange(role) {
+      const usernameLabel = document.getElementById('usernameLabel');
+      const loginUsername = document.getElementById('loginUsername');
+      const loginPassword = document.getElementById('loginPassword');
+      const userInputIcon = document.getElementById('userInputIcon');
+
+      loginUsername.value = '';
+      loginPassword.value = '';
+
+      if (role === 'Staff') {
+        usernameLabel.textContent = 'Employee ID';
+        loginUsername.placeholder = 'Enter Employee ID';
+        userInputIcon.className = 'fa-solid fa-id-card';
+        loginPassword.placeholder = 'Enter password';
+      } else {
+        usernameLabel.textContent = 'Username';
+        loginUsername.placeholder = 'Enter username';
+        userInputIcon.className = 'fa-solid fa-user';
+        loginPassword.placeholder = 'Enter password';
+      }
+    }
+
+    // Always ticks your real live date and live time
+    function startClock() {
+      const clockEl = document.getElementById('clockText');
+      const dateEl = document.getElementById('currentDateText');
+
+      function tick() {
+        const now = new Date();
+
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        if (dateEl) {
+          dateEl.innerHTML = `<i class="fa-regular fa-calendar mr-1.5 text-slate-500"></i>${yyyy}-${mm}-${dd}`;
+        }
+
+        const hrs = String(now.getHours()).padStart(2, '0');
+        const mins = String(now.getMinutes()).padStart(2, '0');
+        const secs = String(now.getSeconds()).padStart(2, '0');
+        if (clockEl) {
+          clockEl.innerHTML = `<i class="fa-regular fa-clock mr-1.5 text-teal-400"></i>${hrs}:${mins}:${secs}`;
+        }
+      }
+
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const r = document.getElementById('loginRole').value;
+      const u = document.getElementById('loginUsername').value.trim();
+      const p = document.getElementById('loginPassword').value.trim();
+      const errEl = document.getElementById('loginError');
+      errEl.classList.add('hidden');
+
+      try {
+        const res = await fetch(`${API_BASE}/api/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: u,
+            password: p,
+            role: r,
+            employee_id: u
+          })
+        });
+        const data = await res.json();
+        if (data.success && data.token) {
+          authToken = data.token;
+          currentUser = data.user;
+          sessionStorage.setItem('aegis_jwt_token', authToken);
+          sessionStorage.setItem('aegis_user', JSON.stringify(currentUser));
+          unlockDashboard();
+        } else {
+          errEl.textContent = data.error || 'Enter the user credentials correct';
+          errEl.classList.remove('hidden');
+        }
+      } catch (err) {
+        errEl.textContent = 'Cannot connect to backend server. Verify "node server.js" is running in terminal.';
+        errEl.classList.remove('hidden');
+      }
+    });
+
+    function unlockDashboard() {
+      document.getElementById('loginOverlay').classList.add('hidden');
+      document.getElementById('dashboardApp').classList.remove('hidden');
+
+      const isStaff = currentUser.role === 'Staff';
+      const roleStr = isStaff ? `Staff (${currentUser.employee_id || currentUser.username})` : 'System Administrator';
+      document.getElementById('headerUserRoleText').textContent = roleStr;
+      document.getElementById('userInitialBadge').textContent = isStaff ? 'ST' : 'SA';
+
+      // ROLE-BASED ACCESS CONTROL: Retrain & Rollback VISIBLE ONLY TO ADMIN
+      const adminControls = document.getElementById('adminControlsContainer');
+      if (adminControls) {
+        if (!isStaff) {
+          adminControls.classList.remove('hidden'); // Visible for Admin
+        } else {
+          adminControls.classList.add('hidden');    // Hidden for Staff
+        }
+      }
+
+      fetchOptimizeData();
+      fetchHorizonsData();
+    }
+
+    function logout() {
+      authToken = null;
+      sessionStorage.clear();
+      localStorage.clear();
+      location.reload();
+    }
+
+    function switchTab(tabKey) {
+      const tabs = ['dashboard', 'horizons', 'optimization', 'analytics'];
+      tabs.forEach(t => {
+        const sec = document.getElementById(`tab-${t}`);
+        const nav = document.getElementById(`nav-${t}`);
+        if (t === tabKey) {
+          sec.classList.remove('hidden');
+          nav.className = "nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition bg-teal-500/15 text-teal-400 border border-teal-500/20";
+        } else {
+          sec.classList.add('hidden');
+          nav.className = "nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition text-slate-400 hover:text-slate-100 hover:bg-slate-800/60";
+        }
+      });
+      if (tabKey === 'analytics') {
+        setTimeout(fetchAnalyticsData, 120);
+      }
+    }
+
+    async function fetchOptimizeData() {
+      try {
+        const res = await fetch(`${API_BASE}/api/optimize`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          logout();
+          return;
+        }
+
+        if (!res.ok) return;
+        const data = await res.json();
+        latestOptimizationData = data;
+
+        document.getElementById('kpiCurrentDemand').textContent = data.predicted_peak_demand.icu_patients;
+        document.getElementById('kpiFluRisk').textContent = `${data.flu_outbreak_risk_pct}%`;
+        document.getElementById('kpiTotalShortage').textContent = `${data.total_shortage_units} Units`;
+        document.getElementById('kpiRejectedPatients').textContent = data.patient_metrics.rejected;
+
+        renderResourceTable(data);
+        renderOptimizationTab(data);
+      } catch (err) {
+        console.error('Failed to load optimization metrics:', err);
+      }
+    }
+
+    async function fetchGeminiOptimizationStrategy() {
+      const btn = document.getElementById('btnGeminiStrategy');
+      const out = document.getElementById('geminiStrategyOutput');
+      const matrixContainer = document.getElementById('dynamicRecoveryContainer');
+      const matrixBody = document.getElementById('dynamicRecoveryBody');
+
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-2"></i>Computing Math Optimization...`;
+      btn.disabled = true;
+
+      try {
+        const res = await fetch(`${API_BASE}/api/ai-optimize-strategy`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ metrics: latestOptimizationData })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+          if (data.recoveryMatrix) {
+            const m = data.recoveryMatrix;
+            matrixBody.innerHTML = `
+              <tr>
+                <td class="p-2.5 font-bold text-white">ICU Beds</td>
+                <td class="p-2.5 font-mono text-rose-400 font-bold">-${m.beds.initialDeficit}</td>
+                <td class="p-2.5 text-teal-300 font-medium">${m.beds.action}</td>
+                <td class="p-2.5 font-mono text-emerald-400 font-bold">+${m.beds.recovered}</td>
+                <td class="p-2.5 font-mono ${m.beds.netDeficit > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}">${m.beds.netDeficit === 0 ? 'BALANCED' : '-' + m.beds.netDeficit}</td>
+              </tr>
+              <tr>
+                <td class="p-2.5 font-bold text-white">Bulk Oxygen</td>
+                <td class="p-2.5 font-mono text-rose-400 font-bold">-${m.oxygen.initialDeficit}</td>
+                <td class="p-2.5 text-teal-300 font-medium">${m.oxygen.action}</td>
+                <td class="p-2.5 font-mono text-emerald-400 font-bold">+${m.oxygen.recovered}</td>
+                <td class="p-2.5 font-mono ${m.oxygen.netDeficit > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}">${m.oxygen.netDeficit === 0 ? 'BALANCED' : '-' + m.oxygen.netDeficit}</td>
+              </tr>
+              <tr>
+                <td class="p-2.5 font-bold text-white">Duty Staff</td>
+                <td class="p-2.5 font-mono text-rose-400 font-bold">-${m.staff.initialDeficit}</td>
+                <td class="p-2.5 text-teal-300 font-medium">${m.staff.action}</td>
+                <td class="p-2.5 font-mono text-emerald-400 font-bold">+${m.staff.recovered}</td>
+                <td class="p-2.5 font-mono ${m.staff.netDeficit > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}">${m.staff.netDeficit === 0 ? 'BALANCED' : '-' + m.staff.netDeficit}</td>
+              </tr>
+              <tr>
+                <td class="p-2.5 font-bold text-white">Ventilators</td>
+                <td class="p-2.5 font-mono text-rose-400 font-bold">-${m.vents.initialDeficit}</td>
+                <td class="p-2.5 text-teal-300 font-medium">${m.vents.action}</td>
+                <td class="p-2.5 font-mono text-emerald-400 font-bold">+${m.vents.recovered}</td>
+                <td class="p-2.5 font-mono ${m.vents.netDeficit > 0 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}">${m.vents.netDeficit === 0 ? 'BALANCED' : '-' + m.vents.netDeficit}</td>
+              </tr>
+            `;
+            matrixContainer.classList.remove('hidden');
+          }
+          out.innerHTML = `<div class="whitespace-pre-line">${data.strategy}</div>`;
+        } else {
+          out.innerHTML = `<p class="text-rose-400">Optimization failed: ${data.error || 'Unknown error'}</p>`;
+        }
+      } catch (err) {
+        out.innerHTML = `<p class="text-rose-400">Error computing optimization: ${err.message}</p>`;
+      } finally {
+        btn.innerHTML = `<i class="fa-solid fa-wand-magic-sparkles mr-2"></i>Execute Dynamic Optimization`;
+        btn.disabled = false;
+      }
+    }
+
+    function renderResourceTable(data) {
+      const tbody = document.getElementById('resourceTableBody');
+      tbody.innerHTML = '';
+
+      const items = [
+        { name: 'ICU Hospital Beds', key: 'beds', predKey: 'icu_patients', icon: 'fa-bed-pulse' },
+        { name: 'Mechanical Ventilators', key: 'vents', predKey: 'ventilator_demand', icon: 'fa-lungs' },
+        { name: 'Bulk Medical Oxygen (Units)', key: 'oxygen', predKey: 'oxygen_demand', icon: 'fa-flask-vial' },
+        { name: 'Medical Duty Staff', key: 'staff', predKey: 'staff_demand', icon: 'fa-user-doctor' },
+        { name: 'Portable O2 Cylinders', key: 'tanks', predKey: 'tanks_demand', icon: 'fa-bottle-droplet' }
+      ];
+
+      items.forEach(it => {
+        const limit = data.physical_limits[it.key];
+        const pred = data.predicted_peak_demand[it.predKey];
+        const alloc = data.allocated_resources[it.key];
+        const shortage = data.shortages[it.key];
+
+        const isShortage = shortage > 0;
+        const statusBadge = isShortage
+          ? `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">Deficit (-${shortage})</span>`
+          : `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">Nominal</span>`;
+
+        const row = document.createElement('tr');
+        row.className = "hover:bg-slate-800/30 transition";
+        row.innerHTML = `
+          <td class="px-6 py-4 flex items-center space-x-3 text-white font-medium">
+            <i class="fa-solid ${it.icon} text-teal-400 w-4 text-center"></i>
+            <span>${it.name}</span>
+          </td>
+          <td class="px-6 py-4 font-mono">${limit}</td>
+          <td class="px-6 py-4 font-mono font-semibold ${isShortage ? 'text-rose-400' : 'text-slate-200'}">${pred}</td>
+          <td class="px-6 py-4 font-mono text-teal-300 font-semibold">${alloc}</td>
+          <td class="px-6 py-4 font-mono ${isShortage ? 'text-rose-400 font-bold' : 'text-slate-400'}">${shortage}</td>
+          <td class="px-6 py-4">${statusBadge}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    function renderOptimizationTab(data) {
+      document.getElementById('solverStatusTag').textContent = `Solver: ${data.solver_status}`;
+
+      const container = document.getElementById('progressBarsContainer');
+      container.innerHTML = '';
+
+      const items = [
+        { label: 'Hospital Bed Capacity Utilization', key: 'beds', predKey: 'icu_patients' },
+        { label: 'Mechanical Ventilators Utilization', key: 'vents', predKey: 'ventilator_demand' },
+        { label: 'Oxygen Consumption Utilization', key: 'oxygen', predKey: 'oxygen_demand' },
+        { label: 'Medical Staff Demand Ratio', key: 'staff', predKey: 'staff_demand' },
+        { label: 'Oxygen Tank Inventory Utilization', key: 'tanks', predKey: 'tanks_demand' }
+      ];
+
+      items.forEach(it => {
+        const limit = data.physical_limits[it.key];
+        const pred = data.predicted_peak_demand[it.predKey];
+        const pct = Math.round((pred / limit) * 100);
+        const isOver = pct > 100;
+
+        const barDiv = document.createElement('div');
+        barDiv.className = "space-y-2";
+        barDiv.innerHTML = `
+          <div class="flex justify-between items-center text-xs font-semibold">
+            <span class="text-slate-200">${it.label}</span>
+            <span class="${isOver ? 'text-rose-400 font-bold' : 'text-teal-400 font-mono'} font-mono">${pred} / ${limit} (${pct}%)</span>
+          </div>
+          <div class="w-full bg-slate-800 h-3.5 rounded-full overflow-hidden p-0.5 border border-slate-700">
+            <div class="h-full rounded-full transition-all duration-700 ${isOver ? 'bg-rose-500 glow-overcapacity' : 'bg-teal-500'}"
+                 style="width: ${Math.min(100, pct)}%"></div>
+          </div>
+        `;
+        container.appendChild(barDiv);
+      });
+
+      const b = data.patient_metrics.breakdown;
+      document.getElementById('optCritAlloc').textContent = b.critical_allocated;
+      document.getElementById('optCritReq').textContent = `${b.critical_requested} Patients`;
+      document.getElementById('optSevAlloc').textContent = b.severe_allocated;
+      document.getElementById('optSevReq').textContent = `${b.severe_requested} Patients`;
+      document.getElementById('optModAlloc').textContent = b.moderate_allocated;
+      document.getElementById('optModReq').textContent = `${b.moderate_requested} Patients`;
+    }
+
+    async function fetchHorizonsData() {
+      try {
+        const res = await fetch(`${API_BASE}/api/horizons`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const grid = document.getElementById('horizonsGrid');
+        grid.innerHTML = '';
+
+        data.horizons.forEach(h => {
+          const card = document.createElement('div');
+          card.className = "bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-sm hover:border-slate-700 transition";
+          card.innerHTML = `
+            <div class="flex justify-between items-center pb-3 mb-4 border-b border-slate-800">
+              <div>
+                <span class="text-xs font-bold uppercase tracking-wider text-teal-400">${h.horizon} Ahead</span>
+                <p class="text-[11px] text-slate-500 font-mono">${h.forecast_time}</p>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-[11px] font-bold bg-${h.status_color}-500/10 text-${h.status_color}-400 border border-${h.status_color}-500/20">
+                ${h.status_level}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <span class="text-slate-400 block text-[10px] uppercase">ICU Beds Req.</span>
+                <span class="text-base font-bold text-white font-mono">${h.icu_patients}</span>
+              </div>
+              <div class="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <span class="text-slate-400 block text-[10px] uppercase">Ventilators Req.</span>
+                <span class="text-base font-bold text-white font-mono">${h.ventilator_demand}</span>
+              </div>
+              <div class="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <span class="text-slate-400 block text-[10px] uppercase">Oxygen Units</span>
+                <span class="text-base font-bold text-white font-mono">${h.oxygen_demand}</span>
+              </div>
+              <div class="p-2.5 bg-slate-950/60 rounded-xl border border-slate-800/80">
+                <span class="text-slate-400 block text-[10px] uppercase">Flu Epidemic Risk</span>
+                <span class="text-base font-bold text-amber-400 font-mono">${h.flu_outbreak_risk_pct}%</span>
+              </div>
+            </div>
+          `;
+          grid.appendChild(card);
+        });
+      } catch (err) {
+        console.error('Failed to load multi-horizon forecasts:', err);
+      }
+    }
+
+    async function fetchAnalyticsData() {
+      const horizon = document.getElementById('analyticsHorizonSelect').value;
+      try {
+        const res = await fetch(`${API_BASE}/api/analytics?horizon=${horizon}`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        renderLineChart(data);
+        renderBarChart(data);
+      } catch (err) {
+        console.error('Failed to load analytics charts:', err);
+      }
+    }
+
+    function renderLineChart(data) {
+      const canvas = document.getElementById('timeSeriesChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (lineChartInstance) lineChartInstance.destroy();
+
+      const combinedLabels = [...data.historical_labels, ...data.future_labels];
+      const histLength = data.historical_labels.length;
+
+      const histIcu = [...data.historical_actuals.icu_patients, ...new Array(data.future_labels.length).fill(null)];
+      const futureIcu = [
+        ...new Array(histLength - 1).fill(null),
+        data.historical_actuals.icu_patients[histLength - 1],
+        ...data.future_predictions.icu_patients
+      ];
+
+      lineChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: combinedLabels,
+          datasets: [
+            {
+              label: 'Historical Actuals (ICU Beds)',
+              data: histIcu,
+              borderColor: '#38bdf8',
+              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+              borderWidth: 2,
+              tension: 0.2,
+              pointRadius: 1,
+              fill: true
+            },
+            {
+              label: 'AI Forecast Trajectory',
+              data: futureIcu,
+              borderColor: '#f43f5e',
+              backgroundColor: 'rgba(244, 63, 94, 0.15)',
+              borderWidth: 2.5,
+              tension: 0.2,
+              pointRadius: 2,
+              fill: true
+            },
+            {
+              label: 'Hospital Bed Capacity (120)',
+              data: new Array(combinedLabels.length).fill(120),
+              borderColor: '#eab308',
+              borderWidth: 1.5,
+              pointRadius: 0,
+              fill: false
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: { color: '#94a3b8', font: { size: 10 }, maxTicksLimit: 10 }
+            },
+            y: {
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#cbd5e1', font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function renderBarChart(data) {
+      const canvas = document.getElementById('inventoryChart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (barChartInstance) barChartInstance.destroy();
+
+      barChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: data.inventory_comparison.categories,
+          datasets: [
+            {
+              label: 'Physical Facility Limits',
+              data: data.inventory_comparison.physical_limits,
+              backgroundColor: '#0d9488',
+              borderRadius: 6
+            },
+            {
+              label: 'Projected Peak Demands',
+              data: data.inventory_comparison.peak_demands,
+              backgroundColor: '#f43f5e',
+              borderRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            },
+            y: {
+              grid: { color: 'rgba(51, 65, 85, 0.3)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            }
+          },
+          plugins: {
+            legend: { labels: { color: '#cbd5e1', font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    // Retrain by selecting a CSV file (Admin Only - Never logs out)
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const btnText = document.getElementById('uploadFileBtnText');
+      const originalText = btnText.textContent;
+      btnText.textContent = `Retraining on ${file.name}...`;
+
+      const formData = new FormData();
+      formData.append('dataset', file);
+
+      try {
+        const res = await fetch(`${API_BASE}/api/retrain`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}` },
+          body: formData
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.message || 'Access denied: Retraining is restricted to Admin.');
+          return;
+        }
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert(`✅ Retrained on ${file.name}!\nPeak ICU demand updated to ~${data.new_peak_icu} beds.\nCharts and dashboard refreshed.`);
+          await fetchOptimizeData();
+          await fetchHorizonsData();
+          await fetchAnalyticsData();
+        } else {
+          alert('Retrain notice: ' + (data.message || 'Dataset processed.'));
+        }
+      } catch (err) {
+        alert('Upload retrain error: ' + err.message);
+      } finally {
+        btnText.textContent = originalText;
+        event.target.value = '';
+      }
+    }
+
+    // 1-Click Rollback Handler (Admin Only)
+    async function triggerRollback() {
+      if (!confirm("Are you sure you want to rollback the model to the original baseline dataset?")) {
+        return;
+      }
+
+      const btnText = document.getElementById('rollbackBtnText');
+      const originalText = btnText.textContent;
+      btnText.textContent = "Rolling back...";
+
+      try {
+        const res = await fetch(`${API_BASE}/api/rollback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.message || 'Access denied: Rollback is restricted to Admin.');
+          return;
+        }
+
+        const data = await res.json();
+        if (data.status === 'success') {
+          alert('✅ ' + data.message + '\nBaseline metrics and charts restored.');
+          await fetchOptimizeData();
+          await fetchHorizonsData();
+          await fetchAnalyticsData();
+        } else {
+          alert('Rollback notice: ' + data.message);
+        }
+      } catch (err) {
+        alert('Rollback error: ' + err.message);
+      } finally {
+        btnText.textContent = originalText;
+      }
+    }
+
+    function downloadPdfReport() {
+      const btn = document.getElementById('btnDownloadPdf');
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin text-rose-400 text-sm"></i><span>Generating PDF...</span>`;
+      btn.disabled = true;
+
+      const element = document.getElementById('exportableArea');
+
+      const opt = {
+        margin: [8, 8, 8, 8],
+        filename: `PulseMatrix_Clinical_Report_${new Date().toISOString().slice(0, 10)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: {
+          scale: 1.5,
+          useCORS: true,
+          scrollY: 0
+        },
+        jsPDF: {
+          unit: 'mm',
+          format: 'a4',
+          orientation: 'landscape'
+        },
+        pagebreak: { mode: ['avoid-all', 'css'] }
+      };
+
+      html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerHTML = `<i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i><span>Download PDF Report</span>`;
+        btn.disabled = false;
+      }).catch((err) => {
+        console.error('PDF generation error:', err);
+        btn.innerHTML = `<i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i><span>Download PDF Report</span>`;
+        btn.disabled = false;
+      });
+    }
+
+    function toggleChatWidget() {
+      const w = document.getElementById('chatWidget');
+      w.classList.toggle('hidden');
+    }
+
+    function sendQuickMessage(text) {
+      document.getElementById('chatInput').value = text;
+      handleChatSubmit(new Event('submit'));
+    }
+
+    async function handleChatSubmit(e) {
+      e.preventDefault();
+      const inputEl = document.getElementById('chatInput');
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      appendChatMessage('user', text);
+      inputEl.value = '';
+
+      chatConversationHistory.push({ role: 'user', text });
+
+      try {
+        const res = await fetch(`${API_BASE}/api/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ message: text, history: chatConversationHistory })
+        });
+        const data = await res.json();
+        const reply = data.reply || 'No response from triage assistant.';
+        appendChatMessage('model', reply);
+        chatConversationHistory.push({ role: 'model', text: reply });
+      } catch (err) {
+        appendChatMessage('model', 'Error communicating with medical triage AI.');
+      }
+    }
+
+    function appendChatMessage(role, text) {
+      const container = document.getElementById('chatMessages');
+      const msgDiv = document.createElement('div');
+      if (role === 'user') {
+        msgDiv.className = "p-3 bg-teal-500/20 border border-teal-500/30 rounded-2xl text-teal-100 ml-6 text-right";
+        msgDiv.innerHTML = `<p class="font-bold text-teal-300 text-[11px] mb-0.5">Clinical Operator</p>${escapeHtml(text)}`;
+      } else {
+        msgDiv.className = "p-3 bg-slate-800/90 border border-slate-700/70 rounded-2xl text-slate-200 mr-6";
+        msgDiv.innerHTML = `<p class="font-bold text-teal-400 text-[11px] mb-0.5">Gemini Triage Assistant</p><div class="whitespace-pre-line">${escapeHtml(text)}</div>`;
+      }
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+  </script>
+</body>
+</html>
